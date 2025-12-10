@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import shap
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -32,7 +31,7 @@ VALIDATION_RANGES = {
 # Streamlit app layout
 st.set_page_config(layout="wide")
 st.title("Heart Disease Prediction App")
-st.write("Enter patient details to predict the likelihood of heart disease and get explanations.")
+st.write("Enter patient details to predict the likelihood of heart disease.")
 
 # --- Input Widgets ---
 st.sidebar.header("Patient Input Features")
@@ -84,7 +83,7 @@ if st.button('Predict Heart Disease'):
         # and drop any extra columns not in X_train_cols
         processed_input = processed_input.reindex(columns=X_train_cols, fill_value=0)
 
-        # Ensure boolean columns are converted to int for SHAP compatibility
+        # Ensure boolean columns are converted to int for compatibility
         for col in processed_input.columns:
             if processed_input[col].dtype == 'bool':
                 processed_input[col] = processed_input[col].astype(int)
@@ -96,37 +95,26 @@ if st.button('Predict Heart Disease'):
         prediction = final_model.predict(processed_input)
         prediction_proba = final_model.predict_proba(processed_input)[:, 1]
 
-        st.subheader('Prediction')
+        st.subheader('Prediction Result')
         result_text = "Presence of Heart Disease" if prediction[0] == 1 else "Absence of Heart Disease"
-
+        
         if prediction[0] == 1:
             st.warning(f"Prediction: **{result_text}**") # Orange for heart disease
         else:
             st.success(f"Prediction: **{result_text}**") # Green for no heart disease
-
+            
         st.write(f"Probability of Heart Disease: **{prediction_proba[0]:.2f}**")
 
-        # --- SHAP Explanations ---
-        st.subheader('Explanation of Prediction (SHAP Values)')
-
-        # Use shap.Explainer with the model's predict_proba function
-        explainer = shap.Explainer(final_model.predict_proba, processed_input, feature_names=X_train_cols)
-
-        # Generate SHAP values for the processed input instance
-        shap_explanation = explainer(processed_input)
-
-        # Extract SHAP values and base value for the positive class
-        shap_values_for_positive_class = shap_explanation.values[0]
-
-        # Create a DataFrame for tabular SHAP explanation
-        shap_df = pd.DataFrame({
-            'Feature': X_train_cols,
-            'SHAP Value': shap_values_for_positive_class
-        }).sort_values(by='SHAP Value', ascending=False) # Sort by absolute SHAP value if preferred
-
-        st.write("**How individual features influence this prediction:**")
-        st.dataframe(shap_df, use_container_width=True)
-
+        # --- Visual Illustration of Prediction Probability ---
+        st.subheader('Prediction Probability Visual')
+        fig, ax = plt.subplots(figsize=(8, 2))
+        colors = ['orange' if prediction[0] == 1 else 'green']
+        ax.barh(['Probability'], [prediction_proba[0]], color=colors)
+        ax.set_xlim(0, 1)
+        ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+        ax.set_xlabel('Probability')
+        ax.set_title('Predicted Probability of Heart Disease')
+        st.pyplot(fig)
 
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
