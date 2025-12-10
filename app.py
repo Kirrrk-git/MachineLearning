@@ -84,6 +84,11 @@ if st.button('Predict Heart Disease'):
         # and drop any extra columns not in X_train_cols
         processed_input = processed_input.reindex(columns=X_train_cols, fill_value=0)
 
+        # Ensure boolean columns are converted to int for SHAP compatibility
+        for col in processed_input.columns:
+            if processed_input[col].dtype == 'bool':
+                processed_input[col] = processed_input[col].astype(int)
+
         # Scale numerical features
         processed_input[original_numerical_cols] = scaler.transform(processed_input[original_numerical_cols])
 
