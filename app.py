@@ -147,7 +147,3 @@ if st.button('Predict Heart Disease'):
         
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
-
-st.markdown("--- ")
-st.write("### How to run this application:")
-st.code("1. Save the code above as `app.py` in the same directory as your `best_rf_heart_disease_model.joblib`, `scaler.joblib`, and `X_train_columns.joblib` files.\n2. Open your terminal or command prompt.\n3. Navigate to that directory.\n4. Run the command: `streamlit run app.py`\n5. The application will open in your web browser.")
