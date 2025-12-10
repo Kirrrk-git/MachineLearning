@@ -95,7 +95,7 @@ if st.button('Predict Heart Disease'):
         result_text = "Presence of Heart Disease" if prediction[0] == 1 else "Absence of Heart Disease"
         
         if prediction[0] == 1:
-            st.error(f"Prediction: **{result_text}**") # Red for heart disease
+            st.warning(f"Prediction: **{result_text}**") # Orange for heart disease
         else:
             st.success(f"Prediction: **{result_text}**") # Green for no heart disease
             
