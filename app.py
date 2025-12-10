@@ -93,14 +93,20 @@ if st.button('Predict Heart Disease'):
 
         st.subheader('Prediction')
         result_text = "Presence of Heart Disease" if prediction[0] == 1 else "Absence of Heart Disease"
-        st.success(f"Prediction: **{result_text}**")
+        
+        if prediction[0] == 1:
+            st.error(f"Prediction: **{result_text}**") # Red for heart disease
+        else:
+            st.success(f"Prediction: **{result_text}**") # Green for no heart disease
+            
         st.write(f"Probability of Heart Disease: **{prediction_proba[0]:.2f}**")
 
         # --- SHAP Explanations ---
         st.subheader('Explanation of Prediction (SHAP Values)')
 
         # Create a SHAP explainer for the RandomForestClassifier, outputting probabilities
-        explainer = shap.TreeExplainer(final_model, model_output='probability')
+        # Explicitly set feature_perturbation='interventional' to avoid conflicts with model_output='probability'
+        explainer = shap.TreeExplainer(final_model, model_output='probability', feature_perturbation='interventional')
 
         # Generate SHAP values for the processed input instance
         shap_values = explainer.shap_values(processed_input)
