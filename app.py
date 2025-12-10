@@ -118,13 +118,10 @@ if st.button('Predict Heart Disease'):
         # shap_explanation will be a shap.Explanation object
         shap_explanation = explainer(processed_input)
 
-        # Select the explanation for the positive class (Heart Disease, which is class 1)
-        shap_explanation_for_positive_class = shap_explanation.select(1)
-
-        # Now extract the values and base_values from the selected explanation
-        # These should now be directly for the positive class, ensuring correct indexing
-        shap_values_for_positive_class = shap_explanation_for_positive_class.values[0] 
-        expected_value_for_positive_class = shap_explanation_for_positive_class.base_values
+        # Extract SHAP values and base value for the positive class (index 1 of the predict_proba output)
+        # For a single instance, shap_explanation.values is typically (1, num_features, 2)
+        shap_values_for_positive_class = shap_explanation.values[0, :, 1]
+        expected_value_for_positive_class = shap_explanation.base_values[1] # Base value for the positive class
 
         # SHAP Force Plot
         st.write("**How individual features contribute to the prediction:**")
