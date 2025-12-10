@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -34,7 +35,7 @@ st.set_page_config(layout="wide")
 st.title("Heart Disease Prediction App")
 st.write("Enter patient details to predict the likelihood of heart disease and get explanations.")
 
-# --- Input Widgets --- 
+# --- Input Widgets ---
 st.sidebar.header("Patient Input Features")
 
 def user_input_features():
@@ -73,9 +74,9 @@ st.write(input_df)
 
 if st.button('Predict Heart Disease'):
     try:
-        # --- Preprocessing --- 
+        # --- Preprocessing ---
         processed_input = input_df.copy()
-        
+
         # Apply one-hot encoding for categorical features
         processed_input = pd.get_dummies(processed_input, columns=original_categorical_cols)
 
@@ -87,7 +88,7 @@ if st.button('Predict Heart Disease'):
         # Scale numerical features
         processed_input[original_numerical_cols] = scaler.transform(processed_input[original_numerical_cols])
 
-        # --- Prediction --- 
+        # --- Prediction ---
         prediction = final_model.predict(processed_input)
         prediction_proba = final_model.predict_proba(processed_input)[:, 1]
 
@@ -96,42 +97,36 @@ if st.button('Predict Heart Disease'):
         st.success(f"Prediction: **{result_text}**")
         st.write(f"Probability of Heart Disease: **{prediction_proba[0]:.2f}**")
 
-        # --- SHAP Explanations --- 
+        # --- SHAP Explanations ---
         st.subheader('Explanation of Prediction (SHAP Values)')
 
-        # Create a SHAP explainer for the RandomForestClassifier
-        explainer = shap.TreeExplainer(final_model)
-        
-        # Generate SHAP values for the processed input instance
-        # Ensure that processed_input is a 2D array-like object for shap_values
-        shap_values = explainer.shap_values(processed_input)
-        
-        # For binary classification, shap_values is a list of two arrays (for class 0 and class 1)
-        # We are interested in the explanation for the positive class (Heart Disease, which is class 1)
-        shap_values_for_positive_class = shap_values[1] 
+        # Create a SHAP explainer for the RandomForestClassifier, outputting probabilities
+        explainer = shap.TreeExplainer(final_model, model_output='probability')
 
-        # Expected value for the positive class
-        expected_value_for_positive_class = explainer.expected_value[1]
+        # Generate SHAP values for the processed input instance
+        shap_values = explainer.shap_values(processed_input)
+
+        # With model_output='probability', shap_values is a single array (for the positive class probability)
+        # and expected_value is a scalar.
+        # So, we don't need to index `shap_values[1]` or `explainer.expected_value[1]`
+        shap_values_for_positive_class = shap_values[0] # For a single instance, it's the first (and only) row
+        expected_value_for_positive_class = explainer.expected_value # It's already a scalar
 
         # SHAP Force Plot
         st.write("**How individual features contribute to the prediction:**")
-        # Use st.pyplot to render the force plot if it doesn't render directly
-        # For force plots, often direct integration with Streamlit can be tricky.
-        # A common workaround is to save it as HTML and display, or use st_shap library.
-        # For simplicity, let's try displaying it directly or indicating alternative.
-        
+
         # Convert processed_input to a numpy array for SHAP plots if needed
         processed_input_array = processed_input.values
 
         # Force plot (usually works better in notebooks or with specific streamlit components)
         st.write("*(Force plot might not render perfectly in all Streamlit environments directly. Visualizing key contributors below.)*")
-        
+
         # Waterfall Plot
         st.write("**Waterfall plot showing contribution of each feature:**")
         fig_waterfall, ax_waterfall = plt.subplots(figsize=(10, 6))
-        shap.plots.waterfall(shap.Explanation(values=shap_values_for_positive_class[0], 
-                                             base_values=expected_value_for_positive_class, 
-                                             data=processed_input_array[0], 
+        shap.plots.waterfall(shap.Explanation(values=shap_values_for_positive_class,
+                                             base_values=expected_value_for_positive_class,
+                                             data=processed_input_array[0],
                                              feature_names=X_train_cols),
                             show=False)
         plt.title('SHAP Waterfall Plot for Current Prediction')
@@ -144,6 +139,6 @@ if st.button('Predict Heart Disease'):
         plt.title('SHAP Feature Importance for Current Prediction')
         plt.tight_layout()
         st.pyplot(plt)
-        
+
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
