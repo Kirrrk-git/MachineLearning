@@ -42,7 +42,7 @@ def user_input_features():
     sex = st.sidebar.selectbox('Sex', ('M', 'F'))
     chest_pain_type = st.sidebar.selectbox('ChestPainType', ('ATA', 'NAP', 'ASY', 'TA'))
     resting_bp = st.sidebar.slider('RestingBP (mm Hg)', VALIDATION_RANGES['RestingBP'][0], VALIDATION_RANGES['RestingBP'][1], 130)
-    cholesterol = st.sidebar.slider('Cholesterol (mg/dl)', VALIDATION_RANGES['Cholesterol'][0], VALIDATION_RANGES['Cholesterol'][1], 223)
+    cholesterol = st.sidebar.slider('Cholesterol', VALIDATION_RANGES['Cholesterol'][0], VALIDATION_RANGES['Cholesterol'][1], 223)
     fasting_bs = st.sidebar.selectbox('FastingBS (>120 mg/dl)', (0, 1))
     resting_ecg = st.sidebar.selectbox('RestingECG', ('Normal', 'ST', 'LVH'))
     max_hr = st.sidebar.slider('MaxHR (bpm)', VALIDATION_RANGES['MaxHR'][0], VALIDATION_RANGES['MaxHR'][1], 138)
@@ -104,18 +104,19 @@ if st.button('Predict Heart Disease'):
         # --- SHAP Explanations ---
         st.subheader('Explanation of Prediction (SHAP Values)')
 
-        # Create a SHAP explainer for the RandomForestClassifier, outputting probabilities
-        # Explicitly set feature_perturbation='interventional' to avoid conflicts with model_output='probability'
-        explainer = shap.TreeExplainer(final_model, model_output='probability', feature_perturbation='interventional')
+        # Use shap.Explainer with the model's predict_proba function
+        # This handles feature_perturbation automatically for probability explanations.
+        # The processed_input (single instance DataFrame) can serve as the masker here.
+        explainer = shap.Explainer(final_model.predict_proba, processed_input, feature_names=X_train_cols)
 
         # Generate SHAP values for the processed input instance
-        shap_values = explainer.shap_values(processed_input)
+        # shap_explanation will be a shap.Explanation object
+        shap_explanation = explainer(processed_input)
 
-        # With model_output='probability', shap_values is a single array (for the positive class probability)
-        # and expected_value is a scalar.
-        # So, we don't need to index `shap_values[1]` or `explainer.expected_value[1]`
-        shap_values_for_positive_class = shap_values[0] # For a single instance, it's the first (and only) row
-        expected_value_for_positive_class = explainer.expected_value # It's already a scalar
+        # Extract SHAP values and base value for the positive class (index 1 of the predict_proba output)
+        # For a single instance, shap_explanation.values is typically (1, num_features, 2)
+        shap_values_for_positive_class = shap_explanation.values[0, :, 1]
+        expected_value_for_positive_class = shap_explanation.base_values[1] # Base value for the positive class
 
         # SHAP Force Plot
         st.write("**How individual features contribute to the prediction:**")
