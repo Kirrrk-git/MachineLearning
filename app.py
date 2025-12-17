@@ -182,46 +182,45 @@ if st.button("Predict and Explain"):
     )
 
 
-    # -------------------------------------------------
-    # LIME explanation (HTML, standalone)
-    # -------------------------------------------------
-    st.subheader("LIME Local Explanation")
+# -------------------------------------------------
+# LIME explanation (HTML, standalone)
+# -------------------------------------------------
+st.subheader("LIME Local Explanation")
 
-    def predict_proba_wrapper(data):
-        df = pd.DataFrame(data, columns=X_train_cols)
-        return model.predict_proba(df)
+def predict_proba_wrapper(data):
+    df = pd.DataFrame(data, columns=X_train_cols)
+    return model.predict_proba(df)
 
-    explainer_lime = LimeTabularExplainer(
-        training_data=X_train_processed,
-        feature_names=X_train_cols,
-        class_names=['No Disease', 'Heart Disease'],
-        mode='classification'
-    )
+explainer_lime = LimeTabularExplainer(
+    training_data=X_train_processed.values,  
+    feature_names=X_train_cols,
+    class_names=['No Disease', 'Heart Disease'],
+    mode='classification'
+)
 
-    lime_exp = explainer_lime.explain_instance(
-        data_row=processed.iloc[0].values,
-        predict_fn=predict_proba_wrapper,
-        num_features=5
-    )
+lime_exp = explainer_lime.explain_instance(
+    data_row=processed.iloc[0].values,
+    predict_fn=predict_proba_wrapper,
+    num_features=5
+)
 
-    components.html(
-        lime_exp.as_html(),
-        height=350,
-        scrolling=True
-    )
+components.html(
+    lime_exp.as_html(),
+    height=350,
+    scrolling=True
+)
 
-    lime_features = [f[0] for f in lime_exp.as_list()]
+lime_features = [f[0] for f in lime_exp.as_list()]
 
-    st.markdown(
-        f"""
-        **LIME Interpretation:**  
-        LIME explains this *individual prediction* by approximating the model
-        locally around the patient’s data point.
+st.markdown(
+    f"""
+    **LIME Interpretation:**  
+    LIME explains this individual prediction by approximating the model locally.
 
-        The strongest contributing features were:
-        **{", ".join(lime_features)}**.
+    The most influential features were:
+    **{", ".join(lime_features)}**.
 
-        These features locally influenced the prediction toward
-        **{'heart disease' if prediction == 1 else 'no heart disease'}**.
-        """
-    )
+    These features locally contributed toward
+    **{'heart disease' if prediction == 1 else 'no heart disease'}**.
+    """
+)
