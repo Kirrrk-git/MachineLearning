@@ -131,7 +131,7 @@ if st.button("Predict Heart Disease"):
     )
 
     # -------------------------------------------------
-    # SHAP Explanation (if available)
+    # SHAP Explanation
     # -------------------------------------------------
     if SHAP_AVAILABLE:
         st.subheader("SHAP Explanation")
@@ -146,27 +146,52 @@ if st.button("Predict Heart Disease"):
     else:
         st.info("SHAP is not available in the current environment.")
 
-    # -------------------------------------------------
-    # LIME Explanation (if available)
-    # -------------------------------------------------
-    if LIME_AVAILABLE:
-        st.subheader("LIME Explanation")
+# -------------------------------------------------
+# LIME Explanation 
+# -------------------------------------------------
+st.subheader("LIME Local Explanation")
 
-        explainer_lime = LimeTabularExplainer(
-            training_data=processed.values,
-            feature_names=X_train_cols,
-            class_names=['No Disease', 'Heart Disease'],
-            mode='classification'
-        )
+from lime.lime_tabular import LimeTabularExplainer
+import streamlit.components.v1 as components
 
-        lime_exp = explainer_lime.explain_instance(
-            processed.iloc[0].values,
-            model.predict_proba,
-            num_features=5
-        )
+# Wrapper to preserve feature names
+def predict_proba_wrapper(data):
+    df_data = pd.DataFrame(data, columns=X_train_cols)
+    return model.predict_proba(df_data)
 
-        fig_lime = lime_exp.as_pyplot_figure()
-        st.pyplot(fig_lime)
+explainer_lime = LimeTabularExplainer(
+    training_data=X_train_processed,
+    feature_names=X_train_cols,
+    class_names=['No Disease', 'Heart Disease'],
+    mode='classification'
+)
 
-    else:
-        st.info("LIME is not available in the current environment.")
+lime_exp = explainer_lime.explain_instance(
+    data_row=processed.iloc[0].values,
+    predict_fn=predict_proba_wrapper,
+    num_features=5
+)
+
+# Render LIME explanation as HTML (CORRECT way)
+components.html(
+    lime_exp.as_html(),
+    height=350,
+    scrolling=True
+)
+
+# Dynamic interpretation
+lime_features = [f[0] for f in lime_exp.as_list()]
+
+st.markdown(
+    f"""
+    **LIME Interpretation:**  
+    LIME approximates the model locally and explains this *specific prediction*.
+
+    The most influential features for this patient were:
+    **{", ".join(lime_features)}**.
+
+    These features locally increased or decreased the predicted probability
+    of {'heart disease' if prediction == 1 else 'no heart disease'}.
+    """
+)
+
