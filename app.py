@@ -133,13 +133,6 @@ if st.button("Predict and Explain"):
         num_features=5
     )
 
-    # Wrap the HTML in a white background div to fix dark mode issues
-    lime_html = f"""
-    <div style="background-color:white; padding:10px; border-radius:5px;">
-    {lime_exp.as_html()}
-    </div>
-    """
-
     components.html(
         lime_exp.as_html(),
         height=350,
